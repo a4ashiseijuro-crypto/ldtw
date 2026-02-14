@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LETS DESTROY THIS WORLD</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #000000;
+      --surface: #080808;
+      --surface-elevated: #0f0f0f;
+      --surface-card: #0c0c0c;
+      --text: #f5f5f7;
+      --text-secondary: #86868b;
+      --text-tertiary: #6e6e73;
+      --separator: #1d1d1f;
+      --radius: 12px;
+      --radius-lg: 16px;
+      --space: 24px;
+      --space-lg: 48px;
+      --space-xl: 64px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-weight: 400;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      font-size: 17px;
+    }
+
+    .page {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 var(--space-lg);
+    }
+
+    header {
+      padding: var(--space-xl) 0 var(--space-lg);
+      border-bottom: 1px solid var(--separator);
+      margin-bottom: 1px;
+    }
+
+    h1 {
+      font-size: clamp(26px, 4vw, 38px);
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      color: var(--text);
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      min-height: calc(100vh - 180px);
+    }
+
+    .half {
+      padding: var(--space-lg) var(--space-xl);
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .half.releases {
+      border-right: 1px solid var(--separator);
+    }
+
+    .half.beta {
+      border-left: none;
+    }
+
+    .half h2 {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: var(--space-lg);
+      padding: 0;
+      border: none;
+    }
+
+    .half.releases h2 {
+      color: var(--text);
+    }
+
+    .works-list,
+    .beta-list {
+      list-style: none;
+    }
+
+    .works-list li,
+    .beta-list li {
+      padding: 16px 0;
+      border-bottom: 1px solid var(--separator);
+      font-size: 15px;
+      font-weight: 400;
+      color: var(--text-secondary);
+      line-height: 1.47;
+    }
+
+    .works-list li:last-child,
+    .beta-list li:last-child {
+      border-bottom: none;
+    }
+
+    /* Бета — те же карточки, что в релизах */
+    .beta-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space);
+    }
+    .beta-list li {
+      border-bottom: none;
+      padding: 0;
+    }
+    .beta-list .release-card-btn {
+      text-decoration: none;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    /* Ползунок прокрутки в стиле сайта */
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: var(--text-tertiary) var(--separator);
+    }
+    *::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    *::-webkit-scrollbar-track {
+      background: var(--separator);
+      border-radius: 4px;
+    }
+    *::-webkit-scrollbar-thumb {
+      background: var(--text-tertiary);
+      border-radius: 4px;
+    }
+    *::-webkit-scrollbar-thumb:hover {
+      background: var(--text-secondary);
+    }
+    *::-webkit-scrollbar-corner {
+      background: var(--separator);
+    }
+
+    /* Release card — премиум квадрат с кнопкой Читать */
+    .works-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space);
+    }
+    .works-list li {
+      border-bottom: none;
+      padding: 0;
+    }
+    .release-card {
+      width: 172px;
+      height: 172px;
+      background: var(--surface-card);
+      border: 1px solid var(--separator);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: border-color 0.3s ease, transform 0.25s ease, box-shadow 0.3s ease;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.03);
+    }
+    .release-card:hover {
+      border-color: var(--text-tertiary);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .release-card:active {
+      transform: scale(0.98);
+    }
+    .release-card-title {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      color: var(--text);
+    }
+    .release-card-btn {
+      display: block;
+      width: 100%;
+      padding: 12px 18px;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid var(--separator);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.25s ease, border-color 0.25s ease;
+    }
+    .release-card-btn:hover {
+      background: #141414;
+      border-color: var(--text-secondary);
+    }
+
+    /* Modal overlay */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.35s cubic-bezier(0.32, 0.72, 0, 1), visibility 0.35s;
+    }
+    .modal-overlay.is-open {
+      opacity: 1;
+      visibility: visible;
+    }
+    .modal-overlay.is-open .modal {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 560px;
+      max-height: 85vh;
+      background: var(--surface);
+      border: 1px solid var(--separator);
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+      opacity: 0;
+      transform: scale(0.92);
+      transition: opacity 0.35s cubic-bezier(0.32, 0.72, 0, 1), transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--separator);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .modal-title {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 22px;
+      line-height: 1;
+      cursor: pointer;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+    .modal-close:hover {
+      background: var(--surface-elevated);
+      color: var(--text);
+    }
+
+    .modal-body {
+      padding: 0;
+      overflow: hidden;
+      position: relative;
+      min-height: 380px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Экран выбора темы */
+    .choice-view {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .choice-view-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 4px;
+    }
+    .topic-btn {
+      display: block;
+      width: 100%;
+      padding: 16px 20px;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text);
+      background: var(--surface-elevated);
+      border: 1px solid var(--separator);
+      border-radius: var(--radius);
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+    .topic-btn:hover {
+      background: #151515;
+      border-color: var(--text-tertiary);
+    }
+
+    /* Слой шифрования — буквы/цифры */
+    .cipher-transition {
+      position: absolute;
+      inset: 0;
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+      z-index: 2;
+    }
+    .cipher-transition.is-active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .cipher-transition.is-out {
+      opacity: 0;
+    }
+    .cipher-grid {
+      display: grid;
+      grid-template-columns: repeat(20, 1fr);
+      gap: 2px;
+      padding: 20px;
+      max-width: 100%;
+      max-height: 100%;
+    }
+    .cipher-cell {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      opacity: 0;
+      animation: cipherIn 0.5s ease forwards;
+      font-variant-numeric: tabular-nums;
+    }
+    .cipher-transition.is-numbers .cipher-cell {
+      animation: cipherFlip 0.4s ease forwards;
+    }
+    @keyframes cipherIn {
+      from { opacity: 0; transform: scale(0.3); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    @keyframes cipherFlip {
+      from { opacity: 1; }
+      to { opacity: 1; }
+    }
+
+    /* Анонимность: кнопки перечёркиваются в выборе темы */
+    .choice-view.buttons-crossed .topic-btn {
+      text-decoration: line-through;
+      opacity: 0.5;
+      color: var(--text-tertiary);
+      pointer-events: none;
+      transition: opacity 0.4s ease, color 0.4s ease, text-decoration 0.3s ease;
+    }
+    .choice-view.buttons-crossed .choice-view-title {
+      opacity: 0.4;
+    }
+
+    /* Слой печати ANON (поверх перечёркнутых кнопок) */
+    .anon-transition {
+      position: absolute;
+      inset: 0;
+      background: transparent;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.35s ease;
+    }
+    .anon-transition.is-active { opacity: 1; pointer-events: auto; }
+    .anon-transition.is-out { opacity: 0; }
+    .stamp {
+      position: absolute;
+      font-size: 48px;
+      font-weight: 700;
+      letter-spacing: 0.25em;
+      color: var(--text-tertiary);
+      opacity: 0.5;
+      transform: rotate(-8deg);
+      animation: stampIn 0.4s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+      z-index: 1;
+      padding: 12px 20px;
+      border: 3px solid var(--text-tertiary);
+      border-radius: 4px;
+    }
+    .stamp.is-anon { animation-delay: 0.45s; opacity: 0; }
+    .stamp.is-local { animation-delay: 0.15s; opacity: 0; }
+    .stamp.is-limits { animation-delay: 0.15s; opacity: 0; }
+    @keyframes stampIn {
+      from { opacity: 0; transform: rotate(-14deg) scale(1.15); }
+      to { opacity: 0.55; transform: rotate(-8deg) scale(1); }
+    }
+
+    /* Переход LOCAL: компьютер, кнопки влетают в него */
+    .local-transition {
+      position: absolute;
+      inset: 0;
+      background: var(--surface);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.3s ease;
+    }
+    .local-transition.is-active { opacity: 1; pointer-events: auto; }
+    .local-transition.is-out { opacity: 0; }
+    .computer-drawing {
+      position: absolute;
+      width: 120px;
+      height: 90px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+    .local-transition.is-active .computer-drawing {
+      opacity: 1;
+      transition-delay: 0.15s;
+    }
+    .computer-screen {
+      width: 100%;
+      height: 72px;
+      border: 3px solid var(--text-tertiary);
+      border-radius: 6px 6px 0 0;
+      background: var(--surface-elevated);
+    }
+    .computer-stand {
+      width: 40px;
+      height: 8px;
+      background: var(--text-tertiary);
+      border-radius: 0 0 4px 4px;
+      opacity: 0.7;
+    }
+    .topic-btn.fly-to-local {
+      position: fixed;
+      z-index: 3;
+      transition: transform 0.6s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.5s ease;
+      pointer-events: none;
+    }
+
+    /* Переход LIMITS: кнопки взрываются */
+    .choice-view.buttons-explode .topic-btn {
+      pointer-events: none;
+      animation: limitsExplode 0.6s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+    }
+    .choice-view.buttons-explode .topic-btn:nth-child(2) { animation-delay: 0.02s; }
+    .choice-view.buttons-explode .topic-btn:nth-child(3) { animation-delay: 0.05s; }
+    .choice-view.buttons-explode .topic-btn:nth-child(4) { animation-delay: 0.08s; }
+    .choice-view.buttons-explode .topic-btn:nth-child(5) { animation-delay: 0.11s; }
+    .choice-view.buttons-explode .topic-btn:nth-child(6) { animation-delay: 0.14s; }
+    .choice-view.buttons-explode .choice-view-title {
+      animation: limitsExplode 0.5s ease forwards;
+      animation-delay: 0.05s;
+    }
+    @keyframes limitsExplode {
+      to {
+        transform: translate(var(--ex-x, 80px), var(--ex-y, -60px)) scale(1.4);
+        opacity: 0;
+      }
+    }
+    .choice-view.buttons-explode .topic-btn:nth-child(2) { --ex-x: -90px; --ex-y: -50px; }
+    .choice-view.buttons-explode .topic-btn:nth-child(3) { --ex-x: 100px; --ex-y: 40px; }
+    .choice-view.buttons-explode .topic-btn:nth-child(4) { --ex-x: -70px; --ex-y: 70px; }
+    .choice-view.buttons-explode .topic-btn:nth-child(5) { --ex-x: 85px; --ex-y: -70px; }
+    .choice-view.buttons-explode .topic-btn:nth-child(6) { --ex-x: -100px; --ex-y: 30px; }
+
+    /* Переход Схема: блоки появляются и соединяются */
+    .legend-transition {
+      position: absolute;
+      inset: 0;
+      background: var(--surface);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.35s ease;
+    }
+    .legend-transition.is-active { opacity: 1; pointer-events: auto; }
+    .legend-transition.is-out { opacity: 0; }
+    .legend-blocks {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 0;
+      padding: 24px;
+    }
+    .legend-block-box {
+      padding: 12px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      background: var(--surface-elevated);
+      border: 1px solid var(--separator);
+      border-radius: 8px;
+      opacity: 0;
+      transform: scale(0.6);
+      animation: legendBlockIn 0.5s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+    }
+    .legend-block-box:nth-child(1) { animation-delay: 0.1s; }
+    .legend-block-box:nth-child(3) { animation-delay: 0.25s; }
+    .legend-block-box:nth-child(5) { animation-delay: 0.4s; }
+    .legend-block-box:nth-child(7) { animation-delay: 0.55s; }
+    @keyframes legendBlockIn {
+      to { opacity: 1; transform: scale(1); }
+    }
+    .legend-connector {
+      width: 24px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--separator), var(--text-tertiary));
+      margin: 0 4px;
+      transform: scaleX(0);
+      transform-origin: left;
+      animation: legendConnectorIn 0.4s ease forwards;
+    }
+    @keyframes legendConnectorIn {
+      to { transform: scaleX(1); }
+    }
+    #leg-conn-1 { animation-delay: 0.35s; }
+    #leg-conn-2 { animation-delay: 0.5s; }
+    #leg-conn-3 { animation-delay: 0.65s; }
+
+    /* Общая легенда (везде в контенте) */
+    .modal-body .legend-block {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      line-height: 1.6;
+      margin-bottom: 20px;
+      padding: 14px 16px;
+      background: var(--surface-elevated);
+      border-radius: var(--radius);
+    }
+    .modal-body .legend-block strong {
+      color: var(--text-secondary);
+    }
+
+    /* Контент темы (после перехода) */
+    .content-view {
+      position: absolute;
+      inset: 0;
+      padding: 24px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      opacity: 0;
+      transform: scale(0.96);
+      pointer-events: none;
+      z-index: 1;
+    }
+    .content-view.is-visible {
+      opacity: 1;
+      transform: scale(1);
+      pointer-events: auto;
+      transition: opacity 0.4s cubic-bezier(0.32, 0.72, 0, 1), transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    .content-view .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 0;
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: color 0.2s ease;
+    }
+    .content-view .back-btn:hover {
+      color: var(--text);
+    }
+
+    .modal-body .doc-title {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+    .modal-body .doc-subtitle {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+    }
+    .modal-body .legend {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      line-height: 1.6;
+      margin-bottom: 24px;
+      padding: 16px;
+      background: var(--surface-elevated);
+      border-radius: var(--radius);
+    }
+    .modal-body .legend strong {
+      color: var(--text-secondary);
+    }
+    .modal-body .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin: 20px 0 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--separator);
+    }
+    .modal-body .section-title:first-of-type {
+      margin-top: 0;
+    }
+    .modal-body .section p {
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+    .modal-body .section ul {
+      list-style: none;
+      margin-bottom: 16px;
+    }
+    .modal-body .section li {
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--text-secondary);
+      padding-left: 20px;
+      position: relative;
+      margin-bottom: 6px;
+    }
+    .modal-body .section li::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: var(--text-tertiary);
+    }
+    .modal-body .footer-note {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid var(--separator);
+    }
+
+    @media (max-width: 734px) {
+      .page {
+        padding: 0 22px;
+      }
+
+      .split {
+        grid-template-columns: 1fr;
+      }
+
+      .half {
+        padding: var(--space) 0;
+        border-left: none !important;
+        border-right: none !important;
+        border-bottom: 1px solid var(--separator);
+      }
+
+      .half:last-child {
+        border-bottom: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+  <header>
+    <h1>LETS DESTROY THIS WORLD</h1>
+  </header>
+
+  <div class="split">
+    <section class="half releases">
+      <h2>Релизы</h2>
+      <ul class="works-list">
+        <li>
+          <div class="release-card">
+            <span class="release-card-title">L3DTW01</span>
+            <button type="button" class="release-card-btn" data-modal="l3dtw01">Читать</button>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <section class="half beta">
+      <h2>Бета</h2>
+      <ul class="beta-list">
+        <li>
+          <div class="release-card">
+            <span class="release-card-title">LDTW Curve</span>
+            <a href="LDTW-Curve.html" class="release-card-btn" id="download-ldtw-curve" download="LDTW Curve.html">Скачать</a>
+          </div>
+        </li>
+      </ul>
+    </section>
+  </div>
+  </div>
+
+  <!-- Modal L3DTW01 -->
+  <div class="modal-overlay" id="modal-l3dtw01" aria-hidden="true">
+    <div class="modal" role="dialog" aria-labelledby="modal-l3dtw01-title">
+      <div class="modal-header">
+        <span class="modal-title" id="modal-l3dtw01-title">L3DTW01</span>
+        <button type="button" class="modal-close" aria-label="Закрыть" onclick="closeModal('modal-l3dtw01')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- Выбор темы -->
+        <div class="choice-view" id="l3dtw01-choice">
+          <p class="choice-view-title">Про что прочитать</p>
+          <button type="button" class="topic-btn" data-topic="legend">Схема L3TSDTW01</button>
+          <button type="button" class="topic-btn" data-topic="cipher">Шифрование</button>
+          <button type="button" class="topic-btn" data-topic="anon">Анонимность и хранение на сервере</button>
+          <button type="button" class="topic-btn" data-topic="local">Локальное хранилище</button>
+          <button type="button" class="topic-btn" data-topic="limits">Ограничения</button>
+        </div>
+
+        <!-- Переход: буквы → цифры (только для Шифрование) -->
+        <div class="cipher-transition" id="l3dtw01-cipher">
+          <div class="cipher-grid" id="l3dtw01-cipher-grid"></div>
+        </div>
+
+        <!-- Переход: печать ANON поверх перечёркнутых кнопок -->
+        <div class="anon-transition" id="l3dtw01-anon">
+          <span class="stamp is-anon" id="l3dtw01-stamp-anon">ANON</span>
+        </div>
+
+        <!-- Переход LOCAL: компьютер + кнопки влетают -->
+        <div class="local-transition" id="l3dtw01-local-trans">
+          <div class="computer-drawing" id="l3dtw01-computer">
+            <div class="computer-screen"></div>
+            <div class="computer-stand"></div>
+          </div>
+        </div>
+
+        <!-- Переход LIMITS: кнопки взрываются (только класс на choice-view) -->
+
+        <!-- Переход Схема: блоки соединяются -->
+        <div class="legend-transition" id="l3dtw01-legend-trans">
+          <div class="legend-blocks" id="l3dtw01-legend-blocks">
+            <div class="legend-block-box" data-label="L3">L3</div>
+            <span class="legend-connector" id="leg-conn-1"></span>
+            <div class="legend-block-box" data-label="TS">TS</div>
+            <span class="legend-connector" id="leg-conn-2"></span>
+            <div class="legend-block-box" data-label="DTW">DTW</div>
+            <span class="legend-connector" id="leg-conn-3"></span>
+            <div class="legend-block-box" data-label="01">01</div>
+          </div>
+        </div>
+
+        <!-- Контент: Схема L3TSDTW01 (только легенда) -->
+        <div class="content-view" id="l3dtw01-content-legend" data-topic="legend">
+          <button type="button" class="back-btn" onclick="l3dtw01Back()">← Назад</button>
+          <h3 class="doc-title">Схема L3TSDTW01</h3>
+          <div class="legend-block">
+            <strong>L3</strong> = одна буква кодируется тремя буквами (Letter → 3 letters)<br>
+            <strong>TS</strong> = привязка к времени (Time-based Seed)<br>
+            <strong>DTW</strong> = день меняет ключ (Day-to-Day)<br>
+            <strong>01</strong> = версия схемы (version 01)
+          </div>
+          <p class="footer-note">© LDTW MESG — L3TSDTW01 v01</p>
+        </div>
+
+        <!-- Контент: Шифрование -->
+        <div class="content-view" id="l3dtw01-content-cipher" data-topic="cipher">
+          <button type="button" class="back-btn" onclick="l3dtw01Back()">← Назад</button>
+          <h3 class="doc-title">Как работает шифрование</h3>
+          <div class="section">
+            <ul>
+              <li>Каждый символ открытого текста (буква, цифра, пробел, знак) заменяется на три буквы латинского алфавита (a–z).</li>
+              <li>Соответствие «символ → три буквы» определяется ключом дня: один и тот же символ в разные календарные дни кодируется разными триплетами.</li>
+              <li>Пример: в понедельник буква «G» может кодироваться как «hti», во вторник — как «kcz». Ключ вычисляется по дате (UTC), без паролей.</li>
+              <li>На сервере (Firestore) хранится только зашифрованный текст и номер дня (daySeed). Расшифровка возможна только при знании даты сообщения и алгоритма.</li>
+            </ul>
+          </div>
+          <p class="footer-note">© LDTW MESG — L3TSDTW01 v01</p>
+        </div>
+
+        <!-- Контент: Анонимность -->
+        <div class="content-view" id="l3dtw01-content-anon" data-topic="anon">
+          <button type="button" class="back-btn" onclick="l3dtw01Back()">← Назад</button>
+          <h3 class="doc-title">Анонимность и хранение на сервере</h3>
+          <div class="section">
+            <ul>
+              <li>Личная переписка: сообщение сохраняется на сервере и у обоих пользователей локально. После того как получатель прочитал чат, сообщения удаляются с сервера и остаются только в локальном хранилище у каждого.</li>
+              <li>Каналы и беседы: сообщение удаляется с сервера только после того, как его просмотрели все участники канала или все участники беседы. До этого оно хранится на сервере в зашифрованном виде (текст) или как ссылки на файлы.</li>
+              <li>Это уменьшает объём данных на серверах и снижает риск утечки: прочитанная переписка на сервере не хранится.</li>
+            </ul>
+          </div>
+          <p class="footer-note">© LDTW MESG — L3TSDTW01 v01</p>
+        </div>
+
+        <!-- Контент: Локальное хранилище -->
+        <div class="content-view" id="l3dtw01-content-local" data-topic="local">
+          <button type="button" class="back-btn" onclick="l3dtw01Back()">← Назад</button>
+          <h3 class="doc-title">Локальное хранилище</h3>
+          <div class="section">
+            <ul>
+              <li>Прочитанные сообщения хранятся в локальной базе (IndexedDB) на вашем устройстве.</li>
+              <li>В настройках (раздел «Локальное хранилище») можно посмотреть, сколько места занимают чаты, и при необходимости очистить данные по отдельным чатам.</li>
+            </ul>
+          </div>
+          <p class="footer-note">© LDTW MESG — L3TSDTW01 v01</p>
+        </div>
+
+        <!-- Контент: Ограничения -->
+        <div class="content-view" id="l3dtw01-content-limits" data-topic="limits">
+          <button type="button" class="back-btn" onclick="l3dtw01Back()">← Назад</button>
+          <h3 class="doc-title">Ограничения</h3>
+          <div class="section">
+            <ul>
+              <li>Шифрование применяется к тексту сообщений. Медиафайлы и голосовые хранятся как ссылки или бинарные данные; их конфиденциальность обеспечивается за счёт удаления с сервера после прочтения/просмотра всеми.</li>
+              <li>Схема L3TSDTW01 предназначена для повышения анонимности и минимизации хранения на сервере, а не для защиты от целевого перехвата на устройстве.</li>
+            </ul>
+          </div>
+          <p class="footer-note">© LDTW MESG — L3TSDTW01 v01</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var l3dtw01CipherCells = [];
+    var LETTERS = 'abcdefghijklmnopqrstuvwxyz';
+    var NUMBERS = '0123456789';
+
+    function openModal(id) {
+      var el = document.getElementById(id);
+      if (el) {
+        el.classList.add('is-open');
+        el.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+        el.addEventListener('click', closeOnBackdrop);
+        document.addEventListener('keydown', closeOnEscape);
+        if (id === 'modal-l3dtw01') resetL3dtw01Modal();
+      }
+    }
+    function closeModal(id) {
+      var el = document.getElementById(id);
+      if (el) {
+        el.classList.remove('is-open');
+        el.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+        el.removeEventListener('click', closeOnBackdrop);
+        document.removeEventListener('keydown', closeOnEscape);
+      }
+    }
+    function closeOnBackdrop(e) {
+      if (e.target === e.currentTarget) closeModal(e.currentTarget.id);
+    }
+    function closeOnEscape(e) {
+      if (e.key === 'Escape') {
+        var openModalEl = document.querySelector('.modal-overlay.is-open');
+        if (openModalEl) closeModal(openModalEl.id);
+      }
+    }
+
+    function resetL3dtw01Modal() {
+      var choice = document.getElementById('l3dtw01-choice');
+      choice.style.display = '';
+      choice.classList.remove('buttons-crossed', 'buttons-explode');
+      document.querySelectorAll('.topic-btn').forEach(function(btn) {
+        btn.classList.remove('fly-to-local');
+        btn.style.position = '';
+        btn.style.left = '';
+        btn.style.top = '';
+        btn.style.transform = '';
+      });
+      document.getElementById('l3dtw01-cipher').classList.remove('is-active', 'is-out', 'is-numbers');
+      var anonEl = document.getElementById('l3dtw01-anon');
+      if (anonEl) anonEl.classList.remove('is-active', 'is-out');
+      var localT = document.getElementById('l3dtw01-local-trans');
+      if (localT) localT.classList.remove('is-active', 'is-out');
+      var legendT = document.getElementById('l3dtw01-legend-trans');
+      if (legendT) legendT.classList.remove('is-active', 'is-out');
+      document.querySelectorAll('.content-view').forEach(function(v) { v.classList.remove('is-visible'); });
+    }
+
+    function l3dtw01Back() {
+      document.querySelectorAll('.content-view').forEach(function(v) { v.classList.remove('is-visible'); });
+      var choice = document.getElementById('l3dtw01-choice');
+      choice.style.display = '';
+      choice.classList.remove('buttons-crossed', 'buttons-explode');
+      document.querySelectorAll('.topic-btn').forEach(function(btn) {
+        btn.classList.remove('fly-to-local');
+        btn.style.position = '';
+        btn.style.left = '';
+        btn.style.top = '';
+        btn.style.transform = '';
+      });
+    }
+
+    function showContent(topicId) {
+      var content = document.getElementById('l3dtw01-content-' + topicId);
+      if (content) {
+        content.classList.add('is-visible');
+        content.scrollTop = 0;
+      }
+    }
+
+    function runLegendTransition() {
+      var choice = document.getElementById('l3dtw01-choice');
+      var trans = document.getElementById('l3dtw01-legend-trans');
+      choice.style.display = 'none';
+      trans.classList.add('is-active');
+      setTimeout(function() {
+        trans.classList.add('is-out');
+        showContent('legend');
+        setTimeout(function() {
+          trans.classList.remove('is-active', 'is-out');
+        }, 450);
+      }, 1200);
+    }
+
+    function runAnonTransition() {
+      var choice = document.getElementById('l3dtw01-choice');
+      var trans = document.getElementById('l3dtw01-anon');
+      choice.classList.add('buttons-crossed');
+      trans.classList.add('is-active');
+      setTimeout(function() {
+        choice.style.display = 'none';
+        trans.classList.add('is-out');
+        showContent('anon');
+        setTimeout(function() {
+          choice.classList.remove('buttons-crossed');
+          trans.classList.remove('is-active', 'is-out');
+        }, 450);
+      }, 1400);
+    }
+
+    function runLocalTransition() {
+      var choice = document.getElementById('l3dtw01-choice');
+      var trans = document.getElementById('l3dtw01-local-trans');
+      var modalBody = choice.closest('.modal-body');
+      trans.classList.add('is-active');
+      var bodyRect = modalBody.getBoundingClientRect();
+      var centerX = bodyRect.left + bodyRect.width / 2;
+      var centerY = bodyRect.top + bodyRect.height / 2;
+      document.querySelectorAll('.topic-btn').forEach(function(btn) {
+        var r = btn.getBoundingClientRect();
+        var btnCenterX = r.left + r.width / 2;
+        var btnCenterY = r.top + r.height / 2;
+        btn.classList.add('fly-to-local');
+        btn.style.left = r.left + 'px';
+        btn.style.top = r.top + 'px';
+        btn.style.width = r.width + 'px';
+        btn.style.transform = 'translate(0, 0) scale(1)';
+      });
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          document.querySelectorAll('.topic-btn').forEach(function(btn) {
+            var r = btn.getBoundingClientRect();
+            var btnCenterX = r.left + r.width / 2;
+            var btnCenterY = r.top + r.height / 2;
+            btn.style.transform = 'translate(' + (centerX - btnCenterX) + 'px, ' + (centerY - btnCenterY) + 'px) scale(0.1)';
+            btn.style.opacity = '0';
+          });
+        });
+      });
+      setTimeout(function() {
+        choice.style.display = 'none';
+        trans.classList.add('is-out');
+        showContent('local');
+        setTimeout(function() {
+          trans.classList.remove('is-active', 'is-out');
+          document.querySelectorAll('.topic-btn').forEach(function(btn) {
+            btn.classList.remove('fly-to-local');
+            btn.style.cssText = '';
+          });
+        }, 450);
+      }, 750);
+    }
+
+    function runLimitsTransition() {
+      var choice = document.getElementById('l3dtw01-choice');
+      choice.classList.add('buttons-explode');
+      setTimeout(function() {
+        choice.style.display = 'none';
+        showContent('limits');
+        setTimeout(function() {
+          choice.classList.remove('buttons-explode');
+        }, 100);
+      }, 750);
+    }
+
+    function buildCipherGrid() {
+      var grid = document.getElementById('l3dtw01-cipher-grid');
+      if (!grid || grid.children.length > 0) return;
+      var total = 20 * 18;
+      for (var i = 0; i < total; i++) {
+        var cell = document.createElement('span');
+        cell.className = 'cipher-cell';
+        cell.textContent = LETTERS[Math.floor(Math.random() * LETTERS.length)];
+        cell.style.animationDelay = (Math.random() * 0.5 + (i % 25) * 0.015) + 's';
+        grid.appendChild(cell);
+        l3dtw01CipherCells.push(cell);
+      }
+    }
+
+    function runCipherTransition(topicId, callback) {
+      var choice = document.getElementById('l3dtw01-choice');
+      var cipher = document.getElementById('l3dtw01-cipher');
+      var grid = document.getElementById('l3dtw01-cipher-grid');
+      var content = document.getElementById('l3dtw01-content-' + topicId);
+
+      choice.style.display = 'none';
+      grid.innerHTML = '';
+      l3dtw01CipherCells = [];
+      buildCipherGrid();
+
+      cipher.classList.remove('is-out', 'is-numbers');
+      cipher.classList.add('is-active');
+
+      setTimeout(function() {
+        cipher.classList.add('is-numbers');
+        l3dtw01CipherCells.forEach(function(cell) {
+          cell.textContent = NUMBERS[Math.floor(Math.random() * NUMBERS.length)];
+        });
+      }, 700);
+
+      setTimeout(function() {
+        cipher.classList.add('is-out');
+        content.classList.add('is-visible');
+        content.scrollTop = 0;
+        setTimeout(function() {
+          cipher.classList.remove('is-active', 'is-out', 'is-numbers');
+        }, 450);
+        if (callback) callback();
+      }, 1400);
+    }
+
+    document.querySelectorAll('[data-modal]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        openModal('modal-' + this.getAttribute('data-modal'));
+      });
+    });
+
+    document.getElementById('l3dtw01-choice').addEventListener('click', function(e) {
+      var btn = e.target.closest('.topic-btn');
+      if (!btn) return;
+      var topic = btn.getAttribute('data-topic');
+      if (!topic) return;
+      if (topic === 'legend') runLegendTransition();
+      else if (topic === 'cipher') runCipherTransition('cipher');
+      else if (topic === 'anon') runAnonTransition();
+      else if (topic === 'local') runLocalTransition();
+      else if (topic === 'limits') runLimitsTransition();
+    });
+
+    (function() {
+      var link = document.getElementById('download-ldtw-curve');
+      if (!link) return;
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        fetch('LDTW-Curve.html', { method: 'GET' })
+          .then(function(r) { return r.text(); })
+          .then(function(text) {
+            var blob = new Blob([text], { type: 'application/octet-stream' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'LDTW Curve.html';
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          })
+          .catch(function() {
+            var a = document.createElement('a');
+            a.href = 'LDTW-Curve.html';
+            a.download = 'LDTW Curve.html';
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          });
+      });
+    })();
+  </script>
+</body>
+</html>

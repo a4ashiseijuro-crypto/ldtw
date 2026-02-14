@@ -1,0 +1,1321 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>LDTW Curve — editor</title>
+  <style>
+    :root{
+      --w1: rgba(255,255,255,.58);
+      --w2: rgba(255,255,255,.34);
+
+      --text:rgba(255,255,255,.90);
+      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+
+      --drawerW:340px;
+      --btnW:190px;
+      --gap:18px;
+
+      --glass: rgba(7,7,9,.58);
+      --glassStrong: rgba(5,5,7,.52);
+      --glassBd: rgba(255,255,255,.10);
+      --glassBlur: 30px;
+    }
+    *{box-sizing:border-box}
+    *:focus{outline:none}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:var(--font);
+      color:var(--text);
+      background:#020204; /* very dark but not pure black */
+      overflow:hidden;
+    }
+
+    /* ===== Background (super soft, very dark, no vignette, no color) ===== */
+    .bg{
+      position:fixed; inset:-40%;
+      background:
+        radial-gradient(2400px 1900px at 18% 24%, rgba(255,255,255,.024), transparent 76%),
+        radial-gradient(2400px 1900px at 80% 22%, rgba(255,255,255,.018), transparent 78%),
+        radial-gradient(2700px 2200px at 72% 78%, rgba(255,255,255,.015), transparent 80%),
+        radial-gradient(2200px 1800px at 34% 84%, rgba(255,255,255,.012), transparent 82%);
+      filter: blur(30px);
+      pointer-events:none;
+      z-index:0;
+    }
+    .noise{
+      position:fixed; inset:0;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.55' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='512' height='512' filter='url(%23n)' opacity='.18'/%3E%3C/svg%3E");
+      opacity:.020;
+      mix-blend-mode:normal;
+      pointer-events:none;
+      z-index:1;
+      filter: blur(.8px);
+    }
+
+    /* ===== Top bar ===== */
+    .topbar{
+      position:fixed; inset:0 0 auto 0; height:54px;
+      display:flex; align-items:center; padding:0 18px;
+      z-index:120;
+    }
+    .topbar .left,.topbar .center,.topbar .right{flex:1; display:flex; align-items:center;}
+    .topbar .center{justify-content:center}
+
+    .hamburger{
+      width:34px;height:34px;
+      border:none;background:transparent;
+      display:grid;place-items:center;
+      cursor:pointer;
+      padding:0;
+    }
+    .hamburger .icon{width:18px;height:14px; position:relative;}
+    .hamburger .bar{
+      position:absolute; left:0; right:0;
+      height:2px; border-radius:3px;
+      background:rgba(255,255,255,.82);
+      transition: transform .22s ease, top .22s ease, opacity .18s ease;
+    }
+    .hamburger .bar:nth-child(1){ top:0; }
+    .hamburger .bar:nth-child(2){ top:6px; opacity:.95; }
+    .hamburger .bar:nth-child(3){ top:12px; }
+    body.drawerOpen .hamburger .bar:nth-child(1){ top:6px; transform:rotate(45deg); }
+    body.drawerOpen .hamburger .bar:nth-child(2){ opacity:0; }
+    body.drawerOpen .hamburger .bar:nth-child(3){ top:6px; transform:rotate(-45deg); }
+
+    .brandTop{font-weight:600;color:rgba(255,255,255,.85);font-size:13px;user-select:none}
+
+    .hintKey{
+      position:fixed;
+      right:16px;
+      top:66px;
+      z-index:119;
+      font-size:11px;
+      letter-spacing:.12em;
+      color:rgba(255,255,255,.44);
+      user-select:none;
+      text-transform:uppercase;
+      pointer-events:none;
+    }
+
+    /* ===== Stage & World (pan + zoom) ===== */
+    .stage{
+      position:fixed; inset:0;
+      overflow:hidden;
+      z-index:10;
+      cursor:default;
+    }
+    .stage.panning{ cursor:grabbing; }
+    .world{
+      position:absolute;
+      left:0; top:0;
+      width:100%;
+      height:100%;
+      transform-origin:0 0;
+      transform: translate3d(0px, 0px, 0);
+      will-change: transform;
+    }
+
+    svg#links{
+      position:absolute; inset:0;
+      width:100%; height:100%;
+      z-index:2;
+      overflow:visible;
+    }
+
+    path.link{
+      fill:none;
+      stroke:var(--w1);
+      stroke-width:1.8;
+      stroke-linecap:round;
+      filter: drop-shadow(0 0 8px rgba(255,255,255,.05));
+      pointer-events:none;
+    }
+    path.link.secondary{ stroke:var(--w2); }
+    path.hit{
+      fill:none;
+      stroke:rgba(255,255,255,0);
+      stroke-width:14;
+      pointer-events:stroke;
+      cursor:context-menu;
+    }
+
+    /* ===== Nodes ===== */
+    .node{
+      position:absolute;
+      z-index:5;
+      min-width:92px;
+      min-height:44px;
+      border-radius:14px;
+      border:1px solid var(--glassBd);
+      background: var(--glass);
+      box-shadow: 0 20px 44px rgba(0,0,0,.62);
+      user-select:none;
+      cursor:grab;
+
+      backdrop-filter: blur(var(--glassBlur)) saturate(1) contrast(1.02);
+      -webkit-backdrop-filter: blur(var(--glassBlur)) saturate(1) contrast(1.02);
+
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:10px 12px;
+      text-align:center;
+      overflow:hidden;
+    }
+    .node::before{
+      content:"";
+      position:absolute; inset:-1px;
+      border-radius:inherit;
+      background:
+        radial-gradient(900px 260px at 20% 0%, rgba(255,255,255,.10), transparent 60%),
+        radial-gradient(700px 240px at 80% 18%, rgba(255,255,255,.06), transparent 64%),
+        linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.01));
+      opacity:.33;
+      pointer-events:none;
+      mix-blend-mode:screen;
+    }
+    .node:active{cursor:grabbing}
+    .node .label{
+      position:relative;
+      font-weight:600;
+      letter-spacing:.14em;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width:calc(100% - 18px);
+      pointer-events:none;
+      text-transform:uppercase;
+
+      color: var(--lblColor, rgba(255,255,255,.82));
+      font-size: var(--lblSize, 12px);
+    }
+    .node.selected{ outline: 2px solid rgba(255,255,255,.18); outline-offset:2px; }
+
+    .node.photo{
+      padding:0;
+      display:grid;
+      place-items:center;
+      overflow:hidden;
+      border-radius:16px;
+      background: rgba(5,5,7,.50);
+    }
+    .node.photo::before{opacity:.24}
+    .node.photo img{ width:100%; height:100%; object-fit:cover; pointer-events:none; filter: grayscale(1) saturate(0); }
+    .node.photo .hint{
+      position:absolute; inset:auto 0 0 0;
+      padding:6px 8px;
+      font-size:10px;
+      color:rgba(255,255,255,.60);
+      background: linear-gradient(180deg, transparent, rgba(0,0,0,.62));
+      text-align:center;
+      pointer-events:none;
+    }
+
+    .resizer{
+      position:absolute;
+      right:2px; bottom:2px;
+      width:14px; height:14px;
+      border-radius:4px;
+      border:1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.06);
+      box-shadow: 0 0 12px rgba(255,255,255,.03);
+      cursor:nwse-resize;
+      pointer-events:auto;
+      z-index:6;
+      backdrop-filter: blur(14px) saturate(1);
+      -webkit-backdrop-filter: blur(14px) saturate(1);
+    }
+
+    /* ===== Drawer ===== */
+    .drawer{
+      position:fixed; inset:0 auto 0 0;
+      width:var(--drawerW);
+      background: var(--glassStrong);
+      border-right:1px solid rgba(255,255,255,.10);
+      box-shadow: 16px 0 50px rgba(0,0,0,.74);
+      transform: translateX(calc(-1 * var(--drawerW)));
+      transition: transform .22s ease;
+      z-index:90;
+      padding-top:54px;
+      pointer-events:auto;
+      backdrop-filter: blur(42px) saturate(1) contrast(1.02);
+      -webkit-backdrop-filter: blur(42px) saturate(1) contrast(1.02);
+      overflow:hidden;
+    }
+    body.drawerOpen .drawer{ transform: translateX(0); }
+
+    .drawerHeader{
+      position:absolute; top:0; left:0; right:0;
+      height:54px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:0 14px;
+      z-index:1;
+    }
+    .drawerTitle{
+      font-weight:600;
+      color:rgba(255,255,255,.86);
+      font-size:13px;
+      letter-spacing:.02em;
+      user-select:none;
+      line-height:1;
+    }
+
+    .panelButtons{
+      position:absolute;
+      left:0; right:0;
+      top:190px;
+      display:flex;
+      flex-direction:column;
+      gap:var(--gap);
+      align-items:center;
+      z-index:1;
+    }
+    .footerButtons{
+      position:absolute;
+      left:0; right:0;
+      bottom:60px;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      align-items:center;
+      z-index:1;
+    }
+    .footerButtons .row{
+      width:var(--btnW);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+
+    .btn, .btnSmall, .btnWide{
+      position:relative;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.035);
+      box-shadow: 0 16px 30px rgba(0,0,0,.50);
+      color:rgba(255,255,255,.80);
+      font-weight:600;
+      cursor:pointer;
+      transition: transform .10s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
+      text-transform:uppercase;
+      transform: translateZ(0);
+      backdrop-filter: blur(18px) saturate(1);
+      -webkit-backdrop-filter: blur(18px) saturate(1);
+      user-select:none;
+    }
+    .btn::before, .btnSmall::before, .btnWide::before{
+      content:"";
+      position:absolute; inset:-40% -60%;
+      background: radial-gradient(closest-side, rgba(255,255,255,.12), rgba(255,255,255,0) 62%);
+      transform: translateX(-60%) rotate(18deg);
+      opacity:0;
+      transition: opacity .18s ease, transform .45s ease;
+      pointer-events:none;
+    }
+    .btn:hover::before, .btnSmall:hover::before, .btnWide:hover::before{
+      opacity:1;
+      transform: translateX(35%) rotate(18deg);
+    }
+    .btn:hover, .btnSmall:hover, .btnWide:hover{
+      border-color:rgba(255,255,255,.22);
+      box-shadow: 0 0 22px rgba(255,255,255,.05), 0 16px 30px rgba(0,0,0,.50);
+      background: rgba(255,255,255,.04);
+    }
+    .btn:active, .btnSmall:active, .btnWide:active{
+      transform: translateY(1px) scale(.995);
+      box-shadow: 0 0 14px rgba(255,255,255,.04), 0 12px 24px rgba(0,0,0,.50);
+    }
+    .btn{ width:var(--btnW); height:44px; border-radius:14px; letter-spacing:.14em; font-size:12px; }
+    .btnSmall{ width:calc((var(--btnW) - 16px)/2); height:44px; border-radius:14px; letter-spacing:.10em; font-size:12px; }
+    .btnWide{ width:var(--btnW); height:44px; border-radius:14px; letter-spacing:.14em; font-size:12px; }
+
+    /* ===== Modal ===== */
+    .modalOverlay{
+      position:fixed; inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background: rgba(0,0,0,.66);
+      opacity:0;
+      pointer-events:none;
+      transition: opacity .18s ease;
+      z-index:160;
+    }
+    .modalOverlay.open{ opacity:1; pointer-events:auto; }
+    .modal{
+      width:min(560px, calc(100vw - 48px));
+      max-height:min(72vh, 680px);
+      border-radius:20px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(5,5,7,.78);
+      backdrop-filter: blur(38px) saturate(1) contrast(1.02);
+      -webkit-backdrop-filter: blur(38px) saturate(1) contrast(1.02);
+      box-shadow: 0 30px 78px rgba(0,0,0,.78);
+      overflow:hidden;
+      transform: translateY(8px) scale(.99);
+      transition: transform .18s ease;
+      display:flex;
+      flex-direction:column;
+    }
+    .modalOverlay.open .modal{ transform: translateY(0) scale(1); }
+    .modalHeader{
+      height:54px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      flex:0 0 auto;
+    }
+    .modalHeader .title{
+      font-weight:600;
+      font-size:13px;
+      color:rgba(255,255,255,.86);
+      letter-spacing:.02em;
+      user-select:none;
+    }
+    .modalHeader .x{
+      position:absolute;
+      right:14px;
+      width:34px; height:34px;
+      border:none;
+      background:transparent;
+      cursor:pointer;
+      padding:0;
+      filter: none !important; /* keep crisp */
+    }
+    .modalHeader .x:before, .modalHeader .x:after{
+      content:"";
+      position:absolute;
+      left:50%; top:50%;
+      width:18px; height:2px;
+      background:rgba(255,255,255,.78);
+      border-radius:2px;
+      transform-origin:center;
+    }
+    .modalHeader .x:before{ transform:translate(-50%,-50%) rotate(45deg); }
+    .modalHeader .x:after{ transform:translate(-50%,-50%) rotate(-45deg); }
+
+    .modalBody{
+      padding:14px;
+      display:grid;
+      gap:12px;
+      overflow:hidden; /* fixes "not fitting" */
+      flex:1 1 auto;
+      min-height:0;
+    }
+    .modalRow{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+    .field{
+      height:54px;
+      flex: 1 1 200px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.22);
+      border-radius:14px;
+      padding:10px 12px;
+      backdrop-filter: blur(18px) saturate(1);
+      -webkit-backdrop-filter: blur(18px) saturate(1);
+    }
+    .field label{
+      font-size:11px;
+      letter-spacing:.12em;
+      color:rgba(255,255,255,.68);
+      text-transform:uppercase;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .field input[type="number"]{
+      width:120px;
+      border:none;
+      background:transparent;
+      color:rgba(255,255,255,.92);
+      font:600 12px var(--font);
+      letter-spacing:.08em;
+      text-align:right;
+      outline:none;
+    }
+    /* Spectrum picker (no grayscale filter) */
+    .field input[type="color"]{
+      width:52px; height:34px;
+      border:none;
+      padding:0;
+      background:transparent;
+      cursor:pointer;
+      filter:none !important;
+    }
+
+    .modalInput{
+      width:100%;
+      height:120px;
+      resize:vertical;
+      outline:none;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.28);
+      color:rgba(255,255,255,.92);
+      font: 600 13px var(--font);
+      letter-spacing:.10em;
+      padding:12px 12px;
+      text-transform:uppercase;
+      backdrop-filter: blur(18px) saturate(1);
+      -webkit-backdrop-filter: blur(18px) saturate(1);
+    }
+    .modalFooter{
+      padding:14px;
+      display:flex;
+      gap:12px;
+      justify-content:flex-end;
+      border-top:1px solid rgba(255,255,255,.10);
+      flex:0 0 auto;
+    }
+    .modalBtn{
+      width:120px;
+      height:42px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.04);
+      color:rgba(255,255,255,.84);
+      cursor:pointer;
+      font-weight:600;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      backdrop-filter: blur(18px) saturate(1);
+      -webkit-backdrop-filter: blur(18px) saturate(1);
+      transition: transform .10s ease, background .18s ease, border-color .18s ease;
+    }
+    .modalBtn:hover{ background: rgba(255,255,255,.05); border-color:rgba(255,255,255,.22); }
+    .modalBtn:active{ transform: translateY(1px) scale(.995); }
+
+    /* ===== Toast ===== */
+    .toast{
+      position:fixed;
+      top:64px;
+      left:20px;
+      z-index:200;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(5,5,7,.70);
+      backdrop-filter: blur(26px) saturate(1);
+      -webkit-backdrop-filter: blur(26px) saturate(1);
+      box-shadow:0 10px 30px rgba(0,0,0,.55);
+      color:rgba(255,255,255,.78);
+      font-size:12px;
+      opacity:0;
+      transform: translateY(-6px);
+      transition: opacity .18s ease, transform .18s ease;
+      pointer-events:none;
+      user-select:none;
+    }
+    .toast.show{opacity:1; transform:translateY(0)}
+
+    input[type="file"]{display:none}
+  </style>
+</head>
+<body>
+  <div class="bg"></div>
+  <div class="noise"></div>
+
+  <div class="topbar">
+    <div class="left">
+      <button class="hamburger" id="menuBtn" aria-label="menu">
+        <span class="icon" aria-hidden="true">
+          <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+        </span>
+      </button>
+    </div>
+    <div class="center">
+      <div class="brandTop">LDTW Curve</div>
+    </div>
+    <div class="right"></div>
+  </div>
+<main class="stage" id="stage" aria-label="canvas">
+    <div class="world" id="world">
+      <svg id="links"></svg>
+
+      <div class="node" data-id="n1" style="left:260px; top:520px; width:120px; height:44px;" data-color="rgba(255,255,255,.82)" data-size="12">
+        <div class="label">DTW</div>
+        <div class="resizer" title="Resize"></div>
+      </div>
+
+      <div class="node" data-id="n2" style="left:1050px; top:360px; width:200px; height:44px;" data-color="rgba(255,255,255,.82)" data-size="12">
+        <div class="label">14.09.2026</div>
+        <div class="resizer" title="Resize"></div>
+      </div>
+
+      <div class="node photo" data-id="n3" style="left:1180px; top:740px; width:210px; height:160px;" data-ar="1.0">
+        <img alt="photo" src="data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='220'%3E%3Cdefs%3E%3CradialGradient id='g' cx='30%25' cy='30%25'%3E%3Cstop offset='0' stop-color='%23ffffff' stop-opacity='.18'/%3E%3Cstop offset='1' stop-color='%23000000' stop-opacity='.45'/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='%23101010'/%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3Ccircle cx='90' cy='100' r='55' fill='rgba(255,255,255,.18)'/%3E%3C/svg%3E">
+        <div class="hint">photo</div>
+        <div class="resizer" title="Resize"></div>
+      </div>
+    </div>
+  </main>
+
+  <aside class="drawer" id="drawer" aria-label="menu">
+    <div class="drawerHeader">
+      <div class="drawerTitle">LDTW Curve</div>
+    </div>
+
+    <div class="panelButtons">
+      <button class="btn" id="addTextBtn">ADD TEXT</button>
+      <button class="btn" id="addPhotoBtn">ADD PHOTO</button>
+      <input id="photoInput" type="file" accept="image/*">
+    </div>
+
+    <div class="footerButtons">
+      <div class="row">
+        <button class="btnSmall" id="saveBtn">SAVE</button>
+        <button class="btnSmall" id="closeBtn">CLOSE</button>
+      </div>
+      <button class="btnWide" id="exportBtn">EXPORT PNG</button>
+    </div>
+  </aside>
+
+  <!-- Custom text editor modal -->
+  <div class="modalOverlay" id="textModalOverlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Text editor">
+      <div class="modalHeader">
+        <div class="title">EDIT TEXT</div>
+        <button class="x" id="textModalClose" aria-label="close"></button>
+      </div>
+
+      <div class="modalBody">
+        <div class="modalRow">
+          <div class="field">
+            <label for="textColor">Color</label>
+            <input type="color" id="textColor" value="#ffffff" />
+          </div>
+          <div class="field">
+            <label for="textSize">Size</label>
+            <input type="number" id="textSize" min="8" max="60" step="1" value="12" />
+          </div>
+        </div>
+
+        <textarea class="modalInput" id="textModalInput" spellcheck="false"></textarea>
+      </div>
+
+      <div class="modalFooter">
+        <button class="modalBtn" id="textModalCancel">CANCEL</button>
+        <button class="modalBtn" id="textModalOk">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  
+
+<script>
+  const stage = document.getElementById('stage');
+  const world = document.getElementById('world');
+  const svg = document.getElementById('links');
+  const toastEl = document.getElementById('toast');
+
+  // prevent context menu on UI
+  document.querySelectorAll('button, input, textarea, select').forEach(el=>{
+    el.addEventListener('contextmenu', (e)=> e.preventDefault());
+  });
+
+  // prevent any wheel/trackpad scroll (no moving around)
+  window.addEventListener('wheel', (e)=>{
+    // allow wheel inside modal textarea if open
+    const modalOpen = document.getElementById('textModalOverlay')?.classList.contains('open');
+    if(modalOpen && (e.target.closest && e.target.closest('.modalBody'))) return;
+    e.preventDefault();
+  }, { passive:false });
+
+  // ===== State =====
+  const state = {
+    selectedId: null,
+    drag: null,
+    resize: null,
+    nodeCounter: 3,
+    links: [
+      { id: 'l1', a:'n1', b:'n2', bend: 0.00, secondary:false },
+      { id: 'l2', a:'n1', b:'n3', bend: 0.18, secondary:true  },
+      { id: 'l3', a:'n2', b:'n3', bend: -0.08, secondary:false },
+    ],
+  };
+
+  function $(sel, root=document){ return root.querySelector(sel); }
+  function $all(sel, root=document){ return [...root.querySelectorAll(sel)]; }
+  function uid(prefix='l'){ return prefix + Math.random().toString(36).slice(2, 10); }
+  function clamp(v,a,b){ return Math.max(a, Math.min(b,v)); }
+
+  function showToast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(()=>toastEl.classList.remove('show'), 1400);
+  }
+
+  function nodeEl(id){ return world.querySelector(`.node[data-id="${id}"]`); }
+
+  function setSelected(id){
+    state.selectedId = id;
+    $all('.node', world).forEach(n=>n.classList.toggle('selected', n.dataset.id === id));
+  }
+
+  // ===== Coordinates (viewport/world are same) =====
+  function stageRect(){ return stage.getBoundingClientRect(); }
+  function screenToWorld(clientX, clientY){
+    const r = stageRect();
+    return { x: (clientX - r.left), y: (clientY - r.top) };
+  }
+  function nodeCenterWorld(el){
+    const left = parseFloat(el.style.left || '0');
+    const top  = parseFloat(el.style.top  || '0');
+    const w = el.offsetWidth;
+    const h = el.offsetHeight;
+    return { x: left + w/2, y: top + h/2 };
+  }
+
+  // ===== Curves =====
+  function computeControls(p1, p2, bend=0){
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const dist = Math.hypot(dx, dy) || 1;
+
+    let c1 = { x: p1.x + dx*0.35, y: p1.y + dy*0.08 };
+    let c2 = { x: p2.x - dx*0.35, y: p2.y - dy*0.08 };
+
+    const nx = -dy / dist;
+    const ny = dx / dist;
+    const off = dist * bend;
+    c1.x += nx * off; c1.y += ny * off;
+    c2.x += nx * off; c2.y += ny * off;
+    return { c1, c2 };
+  }
+
+  function pathBetween(p1, p2, bend=0){
+    const {c1, c2} = computeControls(p1,p2,bend);
+    return `M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} C ${c1.x.toFixed(1)} ${c1.y.toFixed(1)} ${c2.x.toFixed(1)} ${c2.y.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+  }
+
+  // Mask: hide curves under nodes (no padding)
+  function buildMask(w,h){
+    const NS = 'http://www.w3.org/2000/svg';
+    const defs = document.createElementNS(NS,'defs');
+    const mask = document.createElementNS(NS,'mask');
+    mask.setAttribute('id','cutMask');
+
+    const white = document.createElementNS(NS,'rect');
+    white.setAttribute('x','0'); white.setAttribute('y','0');
+    white.setAttribute('width', w);
+    white.setAttribute('height', h);
+    white.setAttribute('fill','white');
+    mask.appendChild(white);
+
+    for(const el of $all('.node', world)){
+      const left = parseFloat(el.style.left || '0');
+      const top  = parseFloat(el.style.top  || '0');
+      const ww = el.offsetWidth;
+      const hh = el.offsetHeight;
+
+      const cut = document.createElementNS(NS,'rect');
+      cut.setAttribute('x', left);
+      cut.setAttribute('y', top);
+      cut.setAttribute('width', ww);
+      cut.setAttribute('height', hh);
+      cut.setAttribute('rx', el.classList.contains('photo') ? 16 : 14);
+      cut.setAttribute('fill','black');
+      mask.appendChild(cut);
+    }
+
+    defs.appendChild(mask);
+    return defs;
+  }
+
+  function redraw(){
+    const r = stageRect();
+    svg.setAttribute('viewBox', `0 0 ${r.width} ${r.height}`);
+    svg.setAttribute('width', r.width);
+    svg.setAttribute('height', r.height);
+
+    svg.innerHTML = '';
+    const NS = 'http://www.w3.org/2000/svg';
+    svg.appendChild(buildMask(r.width, r.height));
+
+    const g = document.createElementNS(NS,'g');
+    g.setAttribute('mask','url(#cutMask)');
+
+    for(const L of state.links){
+      const a = nodeEl(L.a), b = nodeEl(L.b);
+      if(!a || !b) continue;
+      const p1 = nodeCenterWorld(a), p2 = nodeCenterWorld(b);
+      const d = pathBetween(p1,p2, L.bend || 0);
+
+      const path = document.createElementNS(NS,'path');
+      path.setAttribute('d', d);
+      path.setAttribute('class', 'link' + (L.secondary ? ' secondary' : ''));
+      g.appendChild(path);
+
+      const hit = document.createElementNS(NS,'path');
+      hit.setAttribute('d', d);
+      hit.setAttribute('class', 'hit');
+      hit.dataset.linkId = L.id;
+      hit.addEventListener('contextmenu', (e)=>{ e.preventDefault(); deleteLink(L.id); });
+      svg.appendChild(hit);
+    }
+
+    svg.appendChild(g);
+  }
+
+  function deleteLink(id){
+    const before = state.links.length;
+    state.links = state.links.filter(l => l.id !== id);
+    if(state.links.length !== before){
+      redraw();
+      showToast('Кривая удалена');
+    }
+  }
+
+  function deleteNode(id){
+    const el = nodeEl(id);
+    if(el) el.remove();
+    state.links = state.links.filter(l => l.a !== id && l.b !== id);
+    if(state.selectedId === id) state.selectedId = null;
+    redraw();
+    showToast('Блок удалён');
+  }
+
+  // ===== Drag / Resize =====
+  function startDrag(e, el){
+    const p = screenToWorld(e.clientX, e.clientY);
+    const left = parseFloat(el.style.left || '0');
+    const top  = parseFloat(el.style.top  || '0');
+    state.drag = { el, startX:p.x, startY:p.y, startL:left, startT:top };
+    el.setPointerCapture?.(e.pointerId);
+  }
+  function startResize(e, el){
+    const p = screenToWorld(e.clientX, e.clientY);
+    state.resize = {
+      el,
+      startX:p.x,
+      startY:p.y,
+      startW: el.offsetWidth,
+      startH: el.offsetHeight,
+      isPhoto: el.classList.contains('photo'),
+      ar: parseFloat(el.dataset.ar || '0') || 0
+    };
+    el.setPointerCapture?.(e.pointerId);
+  }
+  function onPointerMove(e){
+    if(state.drag){
+      const p = screenToWorld(e.clientX, e.clientY);
+      const dx = p.x - state.drag.startX;
+      const dy = p.y - state.drag.startY;
+      state.drag.el.style.left = `${state.drag.startL + dx}px`;
+      state.drag.el.style.top  = `${state.drag.startT + dy}px`;
+      redraw();
+      return;
+    }
+    if(state.resize){
+      const p = screenToWorld(e.clientX, e.clientY);
+      const dx = p.x - state.resize.startX;
+      const dy = p.y - state.resize.startY;
+
+      let w = Math.max(70, state.resize.startW + dx);
+      let h = Math.max(state.resize.isPhoto ? 60 : 44, state.resize.startH + dy);
+
+      if(state.resize.isPhoto && e.shiftKey && state.resize.ar > 0){
+        if(Math.abs(dx) >= Math.abs(dy)) h = Math.max(60, w / state.resize.ar);
+        else w = Math.max(60, h * state.resize.ar);
+      }
+
+      state.resize.el.style.width = `${w}px`;
+      state.resize.el.style.height = `${h}px`;
+      redraw();
+    }
+  }
+  function onPointerUp(){
+    state.drag = null;
+    state.resize = null;
+  }
+  window.addEventListener('pointermove', onPointerMove);
+  window.addEventListener('pointerup', onPointerUp);
+
+  stage.addEventListener('contextmenu', (e)=> e.preventDefault());
+  stage.addEventListener('pointerdown', (e)=>{
+    if(e.button === 2){ e.preventDefault(); return; }
+    if(e.button !== 0) return;
+    if(e.target === stage || e.target === world || e.target === svg) setSelected(null);
+  });
+
+  // ===== Text modal =====
+  const textModal = document.getElementById('textModalOverlay');
+  const textModalInput = document.getElementById('textModalInput');
+  const textModalClose = document.getElementById('textModalClose');
+  const textModalCancel = document.getElementById('textModalCancel');
+  const textModalOk = document.getElementById('textModalOk');
+  const textColor = document.getElementById('textColor');
+  const textSize = document.getElementById('textSize');
+  let editingNodeId = null;
+
+  function rgbToHex(rgb){
+    const m = (rgb||'').match(/rgba?\((\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+    if(!m) return '#ffffff';
+    const r = (+m[1]).toString(16).padStart(2,'0');
+    const g = (+m[2]).toString(16).padStart(2,'0');
+    const b = (+m[3]).toString(16).padStart(2,'0');
+    return `#${r}${g}${b}`;
+  }
+  function hexToRGBA82(hex){
+    const h = (hex||'#ffffff').replace('#','').trim();
+    const v = h.length===3 ? h.split('').map(x=>x+x).join('') : h.padEnd(6,'f').slice(0,6);
+    const r = parseInt(v.slice(0,2),16);
+    const g = parseInt(v.slice(2,4),16);
+    const b = parseInt(v.slice(4,6),16);
+    return `rgba(${r},${g},${b},.82)`;
+  }
+  function applyLabelStyle(el){
+    const c = el.dataset.color || 'rgba(255,255,255,.82)';
+    const s = el.dataset.size || '12';
+    el.style.setProperty('--lblColor', c);
+    el.style.setProperty('--lblSize', `${parseInt(s,10)||12}px`);
+  }
+
+  function openTextModal(nodeId, currentText){
+    editingNodeId = nodeId;
+    const el = nodeEl(nodeId);
+    const curColor = el?.dataset?.color || 'rgba(255,255,255,.82)';
+    const curSize = el?.dataset?.size || '12';
+    textColor.value = rgbToHex(curColor);
+    textSize.value = String(parseInt(curSize,10)||12);
+
+    textModalInput.value = (currentText || '').toUpperCase();
+    textModal.classList.add('open');
+    textModal.setAttribute('aria-hidden','false');
+    setTimeout(()=>textModalInput.focus(), 0);
+  }
+  function closeTextModal(){
+    editingNodeId = null;
+    textModal.classList.remove('open');
+    textModal.setAttribute('aria-hidden','true');
+  }
+  function commitTextModal(){
+    if(!editingNodeId) return closeTextModal();
+    const el = nodeEl(editingNodeId);
+    const label = el?.querySelector('.label');
+    if(label && el){
+      const v = (textModalInput.value || '').trim();
+      label.textContent = (v || '...').toUpperCase();
+
+      el.dataset.color = hexToRGBA82(textColor.value);
+      el.dataset.size = String(clamp(parseInt(textSize.value,10)||12, 8, 60));
+      applyLabelStyle(el);
+      redraw();
+    }
+    closeTextModal();
+  }
+  textModalClose.addEventListener('click', closeTextModal);
+  textModalCancel.addEventListener('click', closeTextModal);
+  textModalOk.addEventListener('click', commitTextModal);
+  textModal.addEventListener('click', (e)=>{ if(e.target === textModal) closeTextModal(); });
+  window.addEventListener('keydown', (e)=>{
+    if(!textModal.classList.contains('open')) return;
+    if(e.key === 'Escape') closeTextModal();
+    if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'enter') commitTextModal();
+  });
+
+  // ===== Node interactions =====
+  function attachNode(el){
+    const id = el.dataset.id;
+    applyLabelStyle(el);
+
+    el.addEventListener('pointerdown', (e)=>{
+      if(e.button !== 0) return;
+      if(e.target?.classList?.contains('resizer')) return;
+      e.preventDefault();
+
+      if(state.selectedId && state.selectedId !== id){
+        const a = state.selectedId, b = id;
+        const exists = state.links.some(l => (l.a===a && l.b===b) || (l.a===b && l.b===a));
+        if(!exists){
+          state.links.push({ id: uid('l'), a, b, bend: (Math.random()-0.5)*0.5, secondary: Math.random()<0.5 });
+          showToast('Кривая создана');
+          redraw();
+        }else{
+          showToast('Уже соединено');
+        }
+        setSelected(id);
+      }else{
+        setSelected(id);
+      }
+      startDrag(e, el);
+    });
+
+    el.addEventListener('contextmenu', (e)=>{ e.preventDefault(); deleteNode(id); });
+
+    el.addEventListener('dblclick', ()=>{
+      if(el.classList.contains('photo')) return;
+      const label = el.querySelector('.label');
+      openTextModal(id, label?.textContent || '');
+    });
+
+    const resizer = el.querySelector('.resizer');
+    if(resizer){
+      resizer.addEventListener('pointerdown', (e)=>{
+        if(e.button !== 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        startResize(e, el);
+      });
+      resizer.addEventListener('contextmenu', (e)=> e.preventDefault());
+    }
+
+    if(el.classList.contains('photo')){
+      const img = el.querySelector('img');
+      if(img){
+        const setAR = ()=>{
+          if(img.naturalWidth && img.naturalHeight){
+            el.dataset.ar = (img.naturalWidth / img.naturalHeight).toString();
+          }
+        };
+        img.addEventListener('load', setAR);
+        setAR();
+      }
+    }
+  }
+
+  $all('.node', world).forEach(attachNode);
+
+  // ===== Drawer toggle =====
+  document.getElementById('menuBtn').addEventListener('click', ()=> document.body.classList.toggle('drawerOpen'));
+
+  // ===== Add buttons (place within viewport) =====
+  function safeRand(min,max){ return min + Math.random()*(max-min); }
+  document.getElementById('addTextBtn').addEventListener('click', ()=>{
+    state.nodeCounter += 1;
+    const id = `n${state.nodeCounter}`;
+    const el = document.createElement('div');
+    el.className = 'node';
+    el.dataset.id = id;
+    el.dataset.color = 'rgba(255,255,255,.82)';
+    el.dataset.size = '12';
+
+    const r = stageRect();
+    el.style.left = `${safeRand(120, r.width-360)}px`;
+    el.style.top  = `${safeRand(120, r.height-220)}px`;
+    el.style.width = `${160 + Math.random()*180}px`;
+    el.style.height = `${44 + Math.random()*24}px`;
+    el.innerHTML = `<div class="label">NEW TEXT</div><div class="resizer" title="Resize"></div>`;
+    world.appendChild(el);
+    attachNode(el);
+    setSelected(id);
+    redraw();
+    showToast('Добавлен блок');
+  });
+
+  document.getElementById('addPhotoBtn').addEventListener('click', ()=> document.getElementById('photoInput').click());
+  document.getElementById('photoInput').addEventListener('change', ()=>{
+    const inp = document.getElementById('photoInput');
+    const file = inp.files?.[0];
+    if(!file) return;
+    const url = URL.createObjectURL(file);
+
+    state.nodeCounter += 1;
+    const id = `n${state.nodeCounter}`;
+    const el = document.createElement('div');
+    el.className = 'node photo';
+    el.dataset.id = id;
+
+    const r = stageRect();
+    el.style.left = `${safeRand(140, r.width-420)}px`;
+    el.style.top  = `${safeRand(140, r.height-320)}px`;
+    el.style.width = `240px`;
+    el.style.height = `170px`;
+    el.innerHTML = `<img alt="photo" src="${url}"><div class="hint">photo</div><div class="resizer" title="Resize"></div>`;
+    world.appendChild(el);
+    attachNode(el);
+    setSelected(id);
+    redraw();
+    showToast('Добавлено фото');
+    inp.value = '';
+  });
+
+  // ===== Save / restore =====
+  function exportJSON(){
+    const nodes = $all('.node', world).map(el=>{
+      const isPhoto = el.classList.contains('photo');
+      return {
+        id: el.dataset.id,
+        left: el.style.left,
+        top: el.style.top,
+        width: el.style.width || '',
+        height: el.style.height || '',
+        ar: el.dataset.ar || '',
+        type: isPhoto ? 'photo' : 'text',
+        text: isPhoto ? null : (el.querySelector('.label')?.textContent || ''),
+        src: isPhoto ? (el.querySelector('img')?.src || '') : null,
+        color: el.dataset.color || 'rgba(255,255,255,.82)',
+        size: el.dataset.size || '12'
+      };
+    });
+    return { nodes, links: state.links };
+  }
+
+  function restore(){
+    const raw = localStorage.getItem('ldtw_editor_save');
+    if(!raw) return;
+    try{
+      const data = JSON.parse(raw);
+      $all('.node', world).forEach(n=>n.remove());
+
+      for(const n of (data.nodes || [])){
+        const el = document.createElement('div');
+        el.dataset.id = n.id;
+        el.style.left = n.left;
+        el.style.top  = n.top;
+        if(n.width) el.style.width = n.width;
+        if(n.height) el.style.height = n.height;
+        if(n.ar) el.dataset.ar = n.ar;
+        el.dataset.color = n.color || 'rgba(255,255,255,.82)';
+        el.dataset.size = n.size || '12';
+
+        if(n.type === 'photo'){
+          el.className = 'node photo';
+          el.innerHTML = `<img alt="photo" src="${n.src || ''}"><div class="hint">photo</div><div class="resizer" title="Resize"></div>`;
+        }else{
+          el.className = 'node';
+          el.innerHTML = `<div class="label"></div><div class="resizer" title="Resize"></div>`;
+          el.querySelector('.label').textContent = (n.text || '...').toUpperCase();
+        }
+        world.appendChild(el);
+        attachNode(el);
+
+        const num = parseInt((n.id||'').slice(1), 10);
+        if(Number.isFinite(num)) state.nodeCounter = Math.max(state.nodeCounter, num);
+      }
+
+      state.links = (data.links || []).filter(l => l && l.a && l.b && l.id);
+    }catch(e){}
+  }
+
+  document.getElementById('saveBtn').addEventListener('click', ()=>{
+    localStorage.setItem('ldtw_editor_save', JSON.stringify(exportJSON()));
+    showToast('Сохранено');
+  });
+
+  document.getElementById('closeBtn').addEventListener('click', ()=>{
+    setSelected(null);
+    showToast('Close');
+  });
+
+  // ===== Export PNG: background matches on-screen (same gradients, no vignette) =====
+  function downloadBlob(blob, filename){
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 1500);
+  }
+
+  function drawScreenBackground(ctx, w, h){
+    // replicate CSS: 4 radials + blur ~30px, super smooth
+    const s = 7;
+    const base = document.createElement('canvas');
+    base.width = Math.round(w*s);
+    base.height = Math.round(h*s);
+    const b = base.getContext('2d');
+
+    b.fillStyle = '#020204';
+    b.fillRect(0,0,base.width,base.height);
+
+    function radial(px,py,rx,ry,a,stop){
+      const cx = base.width * px;
+      const cy = base.height * py;
+      const r = Math.max(base.width*rx, base.height*ry);
+      const g = b.createRadialGradient(cx, cy, 0, cx, cy, r);
+      g.addColorStop(0, `rgba(255,255,255,${a})`);
+      g.addColorStop(stop ?? 0.76, 'rgba(0,0,0,0)');
+      b.fillStyle = g;
+      b.fillRect(0,0,base.width,base.height);
+    }
+
+    radial(0.18,0.24,0.72,0.55,0.024,0.76);
+    radial(0.80,0.22,0.72,0.55,0.018,0.78);
+    radial(0.72,0.78,0.80,0.64,0.015,0.80);
+    radial(0.34,0.84,0.68,0.55,0.012,0.82);
+
+    // blur pass (match visual softness)
+    const pass = document.createElement('canvas');
+    pass.width = base.width; pass.height = base.height;
+    const p = pass.getContext('2d');
+    p.filter = `blur(${30*s}px)`;
+    p.globalAlpha = 1;
+    p.drawImage(base,0,0);
+
+    // draw downsample
+    ctx.drawImage(pass, 0, 0, w, h);
+  }
+
+  async function exportPNG(){
+    const r = stageRect();
+    const scale = Math.min(3, window.devicePixelRatio || 1);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(r.width * scale);
+    canvas.height = Math.round(r.height * scale);
+    const ctx = canvas.getContext('2d', { alpha: false });
+    ctx.setTransform(scale,0,0,scale,0,0);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
+    drawScreenBackground(ctx, r.width, r.height);
+
+    // Curves
+    for(const L of state.links){
+      const a = nodeEl(L.a), bEl = nodeEl(L.b);
+      if(!a || !bEl) continue;
+      const p1 = nodeCenterWorld(a), p2 = nodeCenterWorld(bEl);
+      const {c1, c2} = computeControls(p1, p2, L.bend || 0);
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, p2.x, p2.y);
+      ctx.lineWidth = 1.8;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = L.secondary ? 'rgba(255,255,255,0.34)' : 'rgba(255,255,255,0.58)';
+      ctx.shadowColor = 'rgba(255,255,255,0.05)';
+      ctx.shadowBlur = 8;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function rrPath(x,y,w,h,rad){
+      const rr = Math.min(rad, w/2, h/2);
+      ctx.beginPath();
+      ctx.moveTo(x+rr, y);
+      ctx.arcTo(x+w, y, x+w, y+h, rr);
+      ctx.arcTo(x+w, y+h, x, y+h, rr);
+      ctx.arcTo(x, y+h, x, y, rr);
+      ctx.arcTo(x, y, x+w, y, rr);
+      ctx.closePath();
+    }
+
+    // Nodes
+    const nodes = $all('.node', world);
+    for(const el of nodes){
+      const left = parseFloat(el.style.left || '0');
+      const top  = parseFloat(el.style.top  || '0');
+      const w = el.offsetWidth;
+      const h = el.offsetHeight;
+
+      const x = left;
+      const y = top;
+
+      if(x+w < -50 || y+h < -50 || x > r.width+50 || y > r.height+50) continue;
+
+      const isPhoto = el.classList.contains('photo');
+      const rad = isPhoto ? 16 : 14;
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.75)';
+      ctx.shadowBlur = 22;
+      ctx.fillStyle = 'rgba(7,7,9,0.82)';
+      ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+      ctx.lineWidth = 1;
+      rrPath(x,y,w,h,rad);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.stroke();
+
+      rrPath(x,y,w,h,rad);
+      ctx.clip();
+      const sheen = ctx.createLinearGradient(0, y, 0, y+h);
+      sheen.addColorStop(0, 'rgba(255,255,255,0.07)');
+      sheen.addColorStop(1, 'rgba(255,255,255,0.01)');
+      ctx.globalCompositeOperation = 'screen';
+      ctx.fillStyle = sheen;
+      ctx.fillRect(x, y, w, h);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.restore();
+
+      if(isPhoto){
+        const imgEl = el.querySelector('img');
+        if(imgEl){
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.decoding = 'async';
+          img.src = imgEl.src;
+          await new Promise(res=>{ img.onload=res; img.onerror=res; });
+
+          const iw = img.naturalWidth || 1;
+          const ih = img.naturalHeight || 1;
+          const ir = iw/ih;
+          const br = w/h;
+
+          let sx=0, sy=0, sw=iw, sh=ih;
+          if(ir > br){ sw = Math.round(ih * br); sx = Math.round((iw - sw)/2); }
+          else { sh = Math.round(iw / br); sy = Math.round((ih - sh)/2); }
+
+          ctx.save();
+          rrPath(x,y,w,h,rad);
+          ctx.clip();
+          ctx.filter = 'grayscale(1)';
+          ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+          ctx.filter = 'none';
+          ctx.restore();
+        }
+      } else {
+        const label = el.querySelector('.label');
+        const text = label?.textContent || '';
+        const color = el.dataset.color || 'rgba(255,255,255,.84)';
+        const fs = parseFloat(getComputedStyle(label).fontSize) || 12;
+
+        ctx.fillStyle = color;
+        ctx.font = `600 ${Math.max(8, fs)}px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, x + w/2, y + h/2);
+      }
+    }
+
+    // watermark fixed size
+    ctx.save();
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = 'rgba(255,255,255,1)';
+    ctx.font = '700 52px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.translate(r.width/2, r.height/2);
+    ctx.rotate(-Math.PI/12);
+    ctx.fillText('t.me/ldtwall', 0, 0);
+    ctx.restore();
+
+    canvas.toBlob((blob)=>{
+      if(!blob) return;
+      downloadBlob(blob, 'ldtw-export.png');
+      showToast('Экспортировано: ldtw-export.png');
+    }, 'image/png');
+  }
+
+  document.getElementById('exportBtn').addEventListener('click', exportPNG);
+
+  // ===== Init =====
+  $all('.node', world).forEach(attachNode);
+  restore();
+  redraw();
+  window.addEventListener('resize', redraw);
+</script>
+
+
+</body>
+</html>
